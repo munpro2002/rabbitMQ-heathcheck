@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
 import { RabbitHealthCheckCommand } from './rabbitmqHealthCheck.command';
-
-import { TerminusModule } from '@nestjs/terminus';
+import { rabbitmqHealthCheckService } from 'src/rabbitmqHealthCheck.service';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [TerminusModule, HttpModule],
-  providers: [RabbitHealthCheckCommand],
+  imports: [HttpModule],
+  providers: [RabbitHealthCheckCommand, rabbitmqHealthCheckService],
 })
 export class CommandModule {}

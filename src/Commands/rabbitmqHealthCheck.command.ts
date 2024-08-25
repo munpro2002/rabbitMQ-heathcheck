@@ -1,16 +1,9 @@
 import { Command, CommandRunner, Option } from 'nest-commander';
-import { Logger } from '@nestjs/common';
-import { RmqOptions, Transport } from '@nestjs/microservices';
-import {
-  HealthCheck,
-  HealthCheckService,
-  HealthIndicatorResult,
-  HttpHealthIndicator,
-  MicroserviceHealthIndicator,
-} from '@nestjs/terminus';
+import { rabbitmqHealthCheckService } from '../rabbitmqHealthCheck.service';
 
 interface RabbitHealthCheckOptions {
   uri: string;
+  metric: string;
 }
 
 @Command({
@@ -18,48 +11,51 @@ interface RabbitHealthCheckOptions {
   description: 'rabbitMQ service healthCheck',
 })
 export class RabbitHealthCheckCommand extends CommandRunner {
-  constructor(
-    private healthCheckService: HealthCheckService,
-    private http: HttpHealthIndicator,
-    private microservice: MicroserviceHealthIndicator,
-  ) {
+  CLUSTER_METRIC = 'cluster';
+  NODES_METRIC = 'nodes';
+  QUEUE_METRIC = 'queue';
+  PROTOCAL = 'amqp';
+  DEFAULT_PORT = '5672';
+  AVAILABLE_OPTIONS = [
+    this.CLUSTER_METRIC,
+    this.NODES_METRIC,
+    this.QUEUE_METRIC,
+  ];
+
+  constructor(private rabbitMQHealthCheckService: rabbitmqHealthCheckService) {
     super();
   }
 
-  @HealthCheck()
   async run(
-    inputs: string[],
+    _inputs: string[],
     options: RabbitHealthCheckOptions,
   ): Promise<void> {
-    const { connectionUri } = options;
-    const result = this.healthCheckService.check([
-      async (): Promise<HealthIndicatorResult> =>
-        this.microservice.pingCheck<RmqOptions>('rabbitmq', {
-          transport: Transport.RMQ,
-          options: {
-            urls: [
-              {
-                protocol: 'amqp',
-                username: 'schoollink',
-                password: 'K32KbKmdPvvAPV',
-                hostname: '192.168.181.103',
-                port: 15672,
-                vhost: '%2f',
-              },
-            ],
-            queue: 'MessageProcessDelivery',
-            queueOptions: {
-              durable: false,
-            },
-          },
-        }),
-    ]);
+    const { metric, uri } = options;
 
-    // const result = this.healthCheckService.check([
-    //   () => this.http.pingCheck('rabbitMQ-domain', 'http://localhost:15672'),
-    // ]);
+    if (metric && !this.AVAILABLE_OPTIONS.includes(metric)) {
+      throw new Error(`Unsport metric: ${metric} \n`);
+    }
 
-    Logger.log(result);
+    const uriComponents =
+      this.rabbitMQHealthCheckService.parseConnectionString(uri);
+
+    if (this.PROTOCAL !== uriComponents.protocol) {
+      throw new Error(`Unsupport Uri protocal: ${uriComponents.protocol} \n`);
+    }
+
+    const res = await this.rabbitMQHealthCheckService.getMetricData(
+      uriComponents,
+      metric,
+    );
+
+    console.log(res, '\n');
+
+    return;
+  }
+
+  @Option({ flags: '-m, --metric <metric>' })
+  parseMetric(val: string) {
+    return val;
   }
 
   @Option({ flags: '-u, --uri <uri>' })
