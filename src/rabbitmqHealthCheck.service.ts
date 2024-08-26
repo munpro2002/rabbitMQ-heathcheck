@@ -25,7 +25,7 @@ export class rabbitmqHealthCheckService {
   async getMetricData(
     uriComponents: ConnectionStringComponents,
     metric?: string,
-  ) {
+  ): Promise<any> {
     const { username, password, host, port, queueName, vhost } = uriComponents;
 
     const auth = Buffer.from(`${username}:${password}`).toString('base64');
@@ -55,6 +55,38 @@ export class rabbitmqHealthCheckService {
       );
     } catch {
       throw new Error('Please check URI credentials \n');
+    }
+  }
+
+  displayKeyMetric(data: any, metric: string): void {
+    if (!metric || this.CLUSTER_METRIC === metric) {
+      console.log(
+        { queue_totals: data.queue_totals, object_totals: data.object_totals },
+        '\n',
+      );
+    }
+
+    if (this.NODES_METRIC === metric) {
+      console.log(
+        {
+          mem_limit: data[0].mem_limit,
+          mem_used: data[0].mem_used,
+          disk_free_limit: data[0].disk_free_limit,
+        },
+        '\n',
+      );
+    }
+
+    if (this.QUEUE_METRIC === metric) {
+      console.log(
+        {
+          memory: data.memory,
+          messages: data.messages,
+          messages_ready: data.messages_ready,
+          messages_unacknowledged: data.messages_unacknowledged,
+        },
+        '\n',
+      );
     }
   }
 

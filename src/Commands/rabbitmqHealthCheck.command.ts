@@ -3,7 +3,7 @@ import { rabbitmqHealthCheckService } from '../rabbitmqHealthCheck.service';
 
 interface RabbitHealthCheckOptions {
   uri: string;
-  metric: string;
+  metric?: string;
 }
 
 @Command({
@@ -48,18 +48,18 @@ export class RabbitHealthCheckCommand extends CommandRunner {
       metric,
     );
 
-    console.log(res, '\n');
+    this.rabbitMQHealthCheckService.displayKeyMetric(res, metric);
 
     return;
   }
 
   @Option({ flags: '-m, --metric <metric>' })
-  parseMetric(val: string) {
+  parseMetric(val: string): string {
     return val;
   }
 
   @Option({ flags: '-u, --uri <uri>' })
-  parseUri(val: string) {
+  parseUri(val: string): string {
     return val;
   }
 }
